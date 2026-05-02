@@ -1,0 +1,2 @@
+-- CreateEnum
+CREATE TYPE "ProductCategory" AS ENUM ('SWEATERS', 'PANTS', 'SHOES', 'THOBES', 'SHIRTS', 'JACKETS', 'DRESSES', 'KIDS', 'ACCESSORIES', 'OTHER');
