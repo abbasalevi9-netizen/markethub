@@ -14,6 +14,16 @@ type PageProps = {
   }>;
 };
 
+function getSizesList(sizes: string | null) {
+  return sizes
+    ? sizes
+        .split(",")
+        .map((size) => size.trim())
+        .filter(Boolean)
+        .slice(0, 5)
+    : [];
+}
+
 export default async function OwnerDashboardPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
@@ -219,19 +229,6 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
               placeholder="Store name"
             />
           </div>
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium">
-              <T path="ownerDashboard.storeName" />
-            </label>
-
-            <input
-              name="name"
-              required
-              defaultValue={store.name}
-              className="w-full rounded-lg border px-3 py-2"
-              placeholder="Store name"
-            />
-          </div>
 
           <div>
             <label className="mb-1 block text-sm font-medium">
@@ -342,46 +339,85 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-3">
-            {store.products.map((product) => (
-              <div key={product.id} className="rounded-2xl border p-4">
-                {product.imageUrl ? (
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="mb-4 h-40 w-full rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
-                    <T path="ownerDashboard.noImage" />
+            {store.products.map((product) => {
+              const sizes = getSizesList(product.sizes);
+
+              return (
+                <div key={product.id} className="rounded-2xl border p-4">
+                  {product.imageUrl ? (
+                    <div className="relative mb-4 overflow-hidden rounded-xl">
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-40 w-full object-cover"
+                      />
+
+                      <span
+                        className={`absolute start-2 top-2 rounded-full px-2 py-1 text-[10px] font-extrabold ${
+                          product.isAvailable
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {product.isAvailable ? "متوفر" : "غير متوفر"}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="relative mb-4 flex h-40 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
+                      <T path="ownerDashboard.noImage" />
+
+                      <span
+                        className={`absolute start-2 top-2 rounded-full px-2 py-1 text-[10px] font-extrabold ${
+                          product.isAvailable
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {product.isAvailable ? "متوفر" : "غير متوفر"}
+                      </span>
+                    </div>
+                  )}
+
+                  <h3 className="font-semibold">{product.name}</h3>
+
+                  {sizes.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {sizes.map((size) => (
+                        <span
+                          key={size}
+                          className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-bold text-gray-700"
+                        >
+                          {size}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="mt-1 line-clamp-2 text-sm text-gray-600">
+                    {product.description}
+                  </p>
+
+                  <p className="mt-3 font-bold">
+                    {formatMoney(product.priceCents, product.currency)}
+                  </p>
+
+                  <div className="mt-4 flex gap-2">
+                    <Link
+                      href={`/dashboard/owner/products/${product.id}/edit`}
+                      className="rounded-lg border px-3 py-2 text-sm"
+                    >
+                      <T path="ownerDashboard.edit" />
+                    </Link>
+
+                    <form action={deleteProductAction.bind(null, product.id)}>
+                      <button className="rounded-lg border px-3 py-2 text-sm text-red-600">
+                        <T path="ownerDashboard.delete" />
+                      </button>
+                    </form>
                   </div>
-                )}
-
-                <h3 className="font-semibold">{product.name}</h3>
-
-                <p className="mt-1 line-clamp-2 text-sm text-gray-600">
-                  {product.description}
-                </p>
-
-                <p className="mt-3 font-bold">
-                  {formatMoney(product.priceCents, product.currency)}
-                </p>
-
-                <div className="mt-4 flex gap-2">
-                  <Link
-                    href={`/dashboard/owner/products/${product.id}/edit`}
-                    className="rounded-lg border px-3 py-2 text-sm"
-                  >
-                    <T path="ownerDashboard.edit" />
-                  </Link>
-
-                  <form action={deleteProductAction.bind(null, product.id)}>
-                    <button className="rounded-lg border px-3 py-2 text-sm text-red-600">
-                      <T path="ownerDashboard.delete" />
-                    </button>
-                  </form>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

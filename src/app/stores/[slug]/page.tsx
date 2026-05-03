@@ -13,6 +13,8 @@ type StoreProduct = {
   imageUrl: string | null;
   priceCents: number;
   currency: string;
+  isAvailable: boolean;
+  sizes: string | null;
 };
 
 type PageProps = {
@@ -20,6 +22,16 @@ type PageProps = {
     slug: string;
   }>;
 };
+
+function getSizesList(sizes: string | null) {
+  return sizes
+    ? sizes
+        .split(",")
+        .map((size) => size.trim())
+        .filter(Boolean)
+        .slice(0, 4)
+    : [];
+}
 
 export default async function StoreDetailsPage({ params }: PageProps) {
   const { slug } = await params;
@@ -110,44 +122,71 @@ export default async function StoreDetailsPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-3">
-            {store.products.map((product: StoreProduct) => (
-              <Link
-                key={product.id}
-                href={`/products/${product.slug}`}
-                className="group block w-full overflow-hidden rounded-2xl border border-amber-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <div className="relative aspect-square bg-stone-100">
-                  {product.imageUrl ? (
-                    <Image
-                      src={product.imageUrl}
-                      alt={product.name}
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-stone-400">
-                      No image
-                    </div>
-                  )}
+            {store.products.map((product: StoreProduct) => {
+              const sizes = getSizesList(product.sizes);
 
-                  <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/40 to-transparent" />
-                </div>
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="group block w-full overflow-hidden rounded-2xl border border-amber-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  <div className="relative aspect-square bg-stone-100">
+                    {product.imageUrl ? (
+                      <Image
+                        src={product.imageUrl}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-stone-400">
+                        No image
+                      </div>
+                    )}
 
-                <div className="p-2 text-right">
-                  <h3 className="line-clamp-1 text-xs font-extrabold text-stone-900">
-                    {product.name}
-                  </h3>
+                    <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/40 to-transparent" />
 
-                  <p className="mt-2 w-fit rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-900">
-                    {formatMoney(product.priceCents, product.currency)}
-                  </p>
+                    <span
+                      className={`absolute start-1.5 top-1.5 rounded-full px-2 py-1 text-[9px] font-extrabold shadow-sm ${
+                        product.isAvailable
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {product.isAvailable ? "متوفر" : "غير متوفر"}
+                    </span>
+                  </div>
 
-                  <span className="mt-2 block text-[10px] font-bold text-stone-700 group-hover:text-amber-700">
-                    عرض المنتج
-                  </span>
-                </div>
-              </Link>
-            ))}
+                  <div className="p-2 text-right">
+                    <h3 className="line-clamp-1 text-xs font-extrabold text-stone-900">
+                      {product.name}
+                    </h3>
+
+                    {sizes.length > 0 && (
+                      <div className="mt-2 flex flex-wrap justify-end gap-1">
+                        {sizes.map((size) => (
+                          <span
+                            key={size}
+                            className="rounded-full border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[9px] font-bold text-stone-700"
+                          >
+                            {size}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="mt-2 w-fit rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-900">
+                      {formatMoney(product.priceCents, product.currency)}
+                    </p>
+
+                    <span className="mt-2 block text-[10px] font-bold text-stone-700 group-hover:text-amber-700">
+                      عرض المنتج
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>
