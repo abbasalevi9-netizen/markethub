@@ -1,9 +1,8 @@
 "use server";
 
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 
+import { put } from "@vercel/blob";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -59,17 +58,14 @@ async function saveProductImage(image: FormDataEntryValue | null) {
   const extension =
     image.type.split("/")[1] === "jpeg" ? "jpg" : image.type.split("/")[1];
 
-  const fileName = `${randomUUID()}.${extension}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "products");
+  const fileName = `products/${randomUUID()}.${extension}`;
 
-  await mkdir(uploadDir, { recursive: true });
+  const blob = await put(fileName, image, {
+    access: "public",
+    contentType: image.type,
+  });
 
-  const bytes = await image.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  await writeFile(path.join(uploadDir, fileName), buffer);
-
-  return `/uploads/products/${fileName}`;
+  return blob.url;
 }
 
 async function assertStoreOwner(storeId: string, userId: string) {
