@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -7,8 +6,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
+    ],
+  },
 };
 
-const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
-
-export default withNextIntl(nextConfig);
+export default nextConfig;
