@@ -1,9 +1,8 @@
 "use server";
 
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 
+import { put } from "@vercel/blob";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -19,6 +18,7 @@ const createStoreSchema = z.object({
 });
 
 const storeBrandingSchema = z.object({
+  name: z.string().min(2),
   location: z.string().optional(),
   websiteUrl: z.string().url().optional().or(z.literal("")),
 });
@@ -43,17 +43,14 @@ async function saveStoreImage(image: FormDataEntryValue | null) {
   const extension =
     image.type.split("/")[1] === "jpeg" ? "jpg" : image.type.split("/")[1];
 
-  const fileName = `${randomUUID()}.${extension}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "stores");
+  const fileName = `stores/${randomUUID()}.${extension}`;
 
-  await mkdir(uploadDir, { recursive: true });
+  const blob = await put(fileName, image, {
+    access: "public",
+    contentType: image.type,
+  });
 
-  const bytes = await image.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  await writeFile(path.join(uploadDir, fileName), buffer);
-
-  return `/uploads/stores/${fileName}`;
+  return blob.url;
 }
 
 async function createUniqueStoreSlug(name: string) {
@@ -125,6 +122,7 @@ export async function updateStoreBrandingAction(formData: FormData) {
   }
 
   const parsed = storeBrandingSchema.safeParse({
+    name: formData.get("name") || store.name,
     location: formData.get("location") || undefined,
     websiteUrl: formData.get("websiteUrl") || "",
   });
@@ -142,6 +140,7 @@ export async function updateStoreBrandingAction(formData: FormData) {
       id: store.id,
     },
     data: {
+      name: parsed.data.name,
       location: parsed.data.location || null,
       websiteUrl: parsed.data.websiteUrl || null,
       logoUrl: logoUrl ?? store.logoUrl,
