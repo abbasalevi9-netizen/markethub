@@ -20,6 +20,9 @@ export default async function RootLayout({
 }) {
   const session = await auth();
 
+  const userRole = session?.user?.role;
+  const canSeeDashboard = userRole === "STORE_OWNER" || userRole === "ADMIN";
+
   return (
     <html lang="en">
       <body className="bg-white text-gray-950">
@@ -44,7 +47,7 @@ export default async function RootLayout({
                   <T path="nav.stores" />
                 </Link>
 
-                {session?.user && (
+                {canSeeDashboard && (
                   <Link
                     href="/dashboard"
                     className="rounded-full px-4 py-2 transition hover:bg-white hover:shadow-sm"
@@ -58,11 +61,22 @@ export default async function RootLayout({
                 <LanguageSwitcher />
 
                 {session?.user ? (
-                  <form action={logoutAction}>
-                    <button className="rounded-full border border-black/10 bg-white px-3 py-2 text-sm font-semibold shadow-sm transition hover:bg-black hover:text-white md:px-4">
-                      <T path="nav.logout" />
-                    </button>
-                  </form>
+                  <>
+                    {canSeeDashboard && (
+                      <Link
+                        href="/dashboard"
+                        className="rounded-full border border-black/10 bg-white px-3 py-2 text-sm font-semibold shadow-sm transition hover:bg-black hover:text-white md:hidden"
+                      >
+                        <T path="nav.dashboard" />
+                      </Link>
+                    )}
+
+                    <form action={logoutAction}>
+                      <button className="rounded-full border border-black/10 bg-white px-3 py-2 text-sm font-semibold shadow-sm transition hover:bg-black hover:text-white md:px-4">
+                        <T path="nav.logout" />
+                      </button>
+                    </form>
+                  </>
                 ) : (
                   <>
                     <Link
