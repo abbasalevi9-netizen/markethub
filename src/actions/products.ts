@@ -141,7 +141,7 @@ export async function createProductAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/stores");
   revalidatePath("/dashboard/owner");
-  revalidatePath(`/stores/${store.slug}`);
+  revalidatePath(`/stores/${encodeURIComponent(store.slug)}`);
   revalidatePath(`/categories/${parsed.data.category.toLowerCase()}`);
 
   redirect("/dashboard/owner");
@@ -191,7 +191,7 @@ export async function updateProductAction(
   revalidatePath("/");
   revalidatePath("/stores");
   revalidatePath("/dashboard/owner");
-  revalidatePath(`/stores/${product.store.slug}`);
+  revalidatePath(`/stores/${encodeURIComponent(product.store.slug)}`);
   revalidatePath(`/categories/${product.category.toLowerCase()}`);
   revalidatePath(`/categories/${parsed.data.category.toLowerCase()}`);
 
@@ -217,6 +217,6 @@ export async function deleteProductAction(productId: string) {
   revalidatePath("/");
   revalidatePath("/stores");
   revalidatePath("/dashboard/owner");
-  revalidatePath(`/stores/${product.store.slug}`);
+  revalidatePath(`/stores/${encodeURIComponent(product.store.slug)}`);
   revalidatePath(`/categories/${product.category.toLowerCase()}`);
 }
