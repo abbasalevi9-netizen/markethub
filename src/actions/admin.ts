@@ -57,5 +57,45 @@ export async function updateStoreHomepageSettingsAction(
   }
 
   revalidatePath("/");
+  revalidatePath("/stores");
   revalidatePath("/dashboard/admin");
+}
+
+export async function approveStoreAction(storeId: string) {
+  await requireRole(Role.ADMIN);
+
+  await prisma.store.update({
+    where: {
+      id: storeId,
+    },
+    data: {
+      isApproved: true,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/stores");
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/owner");
+  revalidatePath("/dashboard/owner/billing");
+}
+
+export async function unapproveStoreAction(storeId: string) {
+  await requireRole(Role.ADMIN);
+
+  await prisma.store.update({
+    where: {
+      id: storeId,
+    },
+    data: {
+      isApproved: false,
+      isPublished: false,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/stores");
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/owner");
+  revalidatePath("/dashboard/owner/billing");
 }

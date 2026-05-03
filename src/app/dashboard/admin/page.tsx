@@ -1,6 +1,10 @@
 import { Role } from "@prisma/client";
 
-import { updateStoreHomepageSettingsAction } from "@/actions/admin";
+import {
+  approveStoreAction,
+  unapproveStoreAction,
+  updateStoreHomepageSettingsAction,
+} from "@/actions/admin";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-guards";
 
@@ -35,6 +39,9 @@ export default async function AdminDashboardPage() {
           },
         },
         orderBy: [
+          {
+            isApproved: "asc",
+          },
           {
             isFeatured: "desc",
           },
@@ -71,21 +78,22 @@ export default async function AdminDashboardPage() {
 
       <section className="mb-10">
         <div className="mb-4">
-          <h2 className="text-xl font-semibold">إدارة متاجر الصفحة الرئيسية</h2>
+          <h2 className="text-xl font-semibold">إدارة المتاجر</h2>
           <p className="mt-1 text-sm text-gray-500">
-            من هنا تختار المتجر المميز وتحدد المتاجر التي تظهر في الصفحة
-            الرئيسية وترتيبها.
+            من هنا توافق على المتاجر قبل الدفع، وتختار المتجر المميز والمتاجر
+            التي تظهر في الصفحة الرئيسية.
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border bg-white">
-          <table className="w-full text-right text-sm">
+        <div className="overflow-x-auto rounded-2xl border bg-white">
+          <table className="w-full min-w-[1100px] text-right text-sm">
             <thead className="bg-gray-50">
               <tr>
                 <th className="p-4">المتجر</th>
                 <th className="p-4">المالك</th>
                 <th className="p-4">المنتجات</th>
                 <th className="p-4">الاشتراك</th>
+                <th className="p-4">موافقة الأدمن</th>
                 <th className="p-4">متجر مميز</th>
                 <th className="p-4">يظهر بالرئيسية</th>
                 <th className="p-4">الترتيب</th>
@@ -125,6 +133,36 @@ export default async function AdminDashboardPage() {
 
                   <td className="p-4">
                     {store.subscription?.status || "INACTIVE"}
+                  </td>
+
+                  <td className="p-4">
+                    {store.isApproved ? (
+                      <div className="flex flex-col gap-2">
+                        <span className="w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                          موافق عليه
+                        </span>
+
+                        <form
+                          action={unapproveStoreAction.bind(null, store.id)}
+                        >
+                          <button className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50">
+                            إلغاء الموافقة
+                          </button>
+                        </form>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <span className="w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+                          بانتظار الموافقة
+                        </span>
+
+                        <form action={approveStoreAction.bind(null, store.id)}>
+                          <button className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-green-700">
+                            موافقة
+                          </button>
+                        </form>
+                      </div>
+                    )}
                   </td>
 
                   <td className="p-4">
@@ -185,8 +223,8 @@ export default async function AdminDashboardPage() {
         </div>
 
         <p className="mt-3 text-sm text-gray-500">
-          ملاحظة: إذا اخترت متجرًا كمميز، سيتم إلغاء التمييز عن باقي المتاجر
-          تلقائيًا.
+          ملاحظة: صاحب المتجر لن يستطيع الدفع حتى تتم الموافقة على متجره من
+          الأدمن.
         </p>
       </section>
 

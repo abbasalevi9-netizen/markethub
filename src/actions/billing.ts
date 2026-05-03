@@ -31,6 +31,10 @@ export async function createCheckoutSessionAction(storeId: string) {
     throw new Error("Store not found");
   }
 
+  if (!store.isApproved) {
+    redirect("/dashboard/owner/billing");
+  }
+
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: store.subscription?.stripeCustomerId || undefined,
