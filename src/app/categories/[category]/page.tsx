@@ -111,18 +111,27 @@ export default async function CategoryPage({ params }: PageProps) {
                       </div>
                     )}
 
+                    {/* Gradient */}
                     <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent md:h-24" />
 
+                    {/* Availability Badge */}
                     <span
-                      className={`absolute start-2 top-2 rounded-full px-2 py-1 text-[10px] font-extrabold shadow-sm lg:px-3 lg:text-xs ${
+                      className={`absolute start-2 top-2 rounded-full px-3 py-1 text-[10px] font-extrabold shadow-sm lg:text-xs ${
                         product.isAvailable
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {product.isAvailable ? "متوفر" : "غير متوفر"}
+                      <T
+                        path={
+                          product.isAvailable
+                            ? "product.available"
+                            : "product.unavailable"
+                        }
+                      />
                     </span>
 
+                    {/* Store Logo */}
                     <div className="absolute bottom-2 end-2 flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-black text-xs font-bold text-white shadow-lg lg:h-12 lg:w-12 lg:text-sm">
                       {product.store.logoUrl ? (
                         <Image
@@ -147,6 +156,7 @@ export default async function CategoryPage({ params }: PageProps) {
                       {product.name}
                     </h2>
 
+                    {/* Sizes */}
                     {sizes.length > 0 && (
                       <div className="mt-2 flex flex-wrap justify-end gap-1">
                         {sizes.map((size) => (
@@ -160,6 +170,7 @@ export default async function CategoryPage({ params }: PageProps) {
                       </div>
                     )}
 
+                    {/* Description */}
                     {product.description && (
                       <p className="mt-2 hidden line-clamp-2 text-sm leading-6 text-stone-600 md:block">
                         {product.description}

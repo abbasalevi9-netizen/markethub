@@ -341,6 +341,8 @@ export const translations = {
       createProduct: "إنشاء المنتج",
       updateProduct: "تحديث المنتج",
       category: "التصنيف",
+      available: "متوفر",
+      unavailable: "غير متوفر",
     },
 
     billing: {

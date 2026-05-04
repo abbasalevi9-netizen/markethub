@@ -137,6 +137,8 @@ export default async function HomePage() {
         imageUrl: product.imageUrl,
         priceCents: product.priceCents,
         currency: product.currency,
+        isAvailable: product.isAvailable,
+        sizes: product.sizes,
         store: {
           name: product.store.name,
           slug: product.store.slug,
