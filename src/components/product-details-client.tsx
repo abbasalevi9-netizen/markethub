@@ -12,6 +12,8 @@ type ProductDetailsClientProps = {
     imageUrl: string | null;
     priceCents: number;
     currency: string;
+    isAvailable: boolean;
+    sizes: string | null;
     store: {
       name: string;
       slug: string;
@@ -43,6 +45,9 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
           noDescription: "لا يوجد وصف لهذا المنتج حاليًا.",
           openStore: "فتح المتجر",
           viewStoreProducts: "مشاهدة منتجات المتجر",
+          available: "متوفر",
+          unavailable: "غير متوفر",
+          sizes: "المقاسات",
         }
       : language === "tr"
         ? {
@@ -51,6 +56,9 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
             noDescription: "Bu ürün için henüz açıklama yok.",
             openStore: "Mağazayı aç",
             viewStoreProducts: "Mağaza ürünlerini gör",
+            available: "Mevcut",
+            unavailable: "Mevcut değil",
+            sizes: "Bedenler",
           }
         : {
             backHome: "Back to home",
@@ -58,6 +66,9 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
             noDescription: "No description is available for this product yet.",
             openStore: "Open store",
             viewStoreProducts: "View store products",
+            available: "Available",
+            unavailable: "Unavailable",
+            sizes: "Sizes",
           };
 
   const fallbackImage = product.store.bannerUrl || "/hero-store.png";
@@ -112,6 +123,24 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
             <p className="mt-5 rounded-2xl bg-amber-100 px-5 py-3 text-xl font-extrabold text-amber-950">
               {formatPrice(product.priceCents, product.currency)}
             </p>
+
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <span
+                className={`rounded-full px-4 py-2 text-sm font-extrabold ${
+                  product.isAvailable
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {product.isAvailable ? text.available : text.unavailable}
+              </span>
+
+              {product.sizes ? (
+                <span className="rounded-full bg-stone-100 px-4 py-2 text-sm font-bold text-stone-700">
+                  {text.sizes}: {product.sizes}
+                </span>
+              ) : null}
+            </div>
 
             <p className="mt-5 leading-8 text-stone-600">
               {product.description || text.noDescription}

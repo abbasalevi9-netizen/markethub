@@ -101,6 +101,8 @@ model Product {
   currency    String          @default("usd")
   category    ProductCategory @default(OTHER)
   isActive    Boolean         @default(true)
+  isAvailable Boolean         @default(true)
+  sizes       String?
 
   storeId String
   store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)

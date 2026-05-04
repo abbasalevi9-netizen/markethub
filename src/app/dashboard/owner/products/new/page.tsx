@@ -91,8 +91,42 @@ export default async function NewProductPage() {
 
           <textarea
             name="description"
+            rows={4}
             className="w-full rounded-lg border px-3 py-2"
           />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            القياسات الموجودة
+          </label>
+
+          <input
+            name="sizes"
+            className="w-full rounded-lg border px-3 py-2"
+            placeholder="مثال: S, M, L, XL أو 38, 39, 40"
+          />
+
+          <p className="mt-1 text-xs text-gray-500">
+            اكتب القياسات وافصل بينها بفاصلة.
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-gray-50 p-4">
+          <label className="flex items-center gap-3 text-sm font-medium">
+            <input
+              name="isAvailable"
+              type="checkbox"
+              defaultChecked
+              className="h-4 w-4"
+            />
+
+            <span>المنتج متوفر حاليًا</span>
+          </label>
+
+          <p className="mt-2 text-xs text-gray-500">
+            إذا أزلت علامة الصح سيظهر المنتج للزوار بحالة غير متوفر.
+          </p>
         </div>
 
         <div>
