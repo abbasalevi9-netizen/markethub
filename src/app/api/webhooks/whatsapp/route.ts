@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 
+export const runtime = "nodejs";
+
 const VERIFY_TOKEN =
   process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "markethub_whatsapp_verify_123";
 
@@ -34,9 +36,11 @@ function getField(text: string, keys: string[]) {
   const lines = text.split("\n");
 
   for (const line of lines) {
-    const [rawKey, ...rest] = line.split(":");
+    const separator = line.includes(":") ? ":" : "：";
+    const [rawKey, ...rest] = line.split(separator);
+
     const key = rawKey?.trim().toLowerCase();
-    const value = rest.join(":").trim();
+    const value = rest.join(separator).trim();
 
     if (!key || !value) continue;
 
@@ -49,7 +53,7 @@ function getField(text: string, keys: string[]) {
 }
 
 function parseProductMessage(text: string) {
-  const name = getField(text, ["اسم المنتج", "الاسم", "name", "product"]);
+  const name = getField(text, ["اسم المنتج", "الاسم", "name"]);
   const price = getField(text, ["السعر", "price"]);
   const currency = getField(text, ["العملة", "currency"]) || "TRY";
   const category = getField(text, ["التصنيف", "category"]) || "OTHER";
@@ -61,7 +65,7 @@ function parseProductMessage(text: string) {
     name,
     price: price ? Number(price.replace(",", ".")) : null,
     currency: currency.toLowerCase(),
-    category: categoryMap[category.toUpperCase()] || "OTHER",
+    category: categoryMap[category.trim().toUpperCase()] || "OTHER",
     sizes,
     colors,
     description,
@@ -95,7 +99,10 @@ async function sendWhatsappMessage(
   to: string,
   message: string,
 ) {
-  if (!WHATSAPP_ACCESS_TOKEN) return;
+  if (!WHATSAPP_ACCESS_TOKEN) {
+    console.log("Missing WHATSAPP_ACCESS_TOKEN");
+    return;
+  }
 
   await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/messages`, {
     method: "POST",
@@ -115,7 +122,10 @@ async function sendWhatsappMessage(
 }
 
 async function downloadWhatsappImage(mediaId: string) {
-  if (!WHATSAPP_ACCESS_TOKEN) return null;
+  if (!WHATSAPP_ACCESS_TOKEN) {
+    console.log("Missing WHATSAPP_ACCESS_TOKEN");
+    return null;
+  }
 
   const mediaResponse = await fetch(
     `https://graph.facebook.com/v25.0/${mediaId}`,
@@ -126,12 +136,18 @@ async function downloadWhatsappImage(mediaId: string) {
     },
   );
 
-  if (!mediaResponse.ok) return null;
+  if (!mediaResponse.ok) {
+    console.log("Failed to get media URL");
+    return null;
+  }
 
   const mediaData = await mediaResponse.json();
   const mediaUrl = mediaData.url;
 
-  if (!mediaUrl) return null;
+  if (!mediaUrl) {
+    console.log("Media URL missing");
+    return null;
+  }
 
   const imageResponse = await fetch(mediaUrl, {
     headers: {
@@ -139,7 +155,10 @@ async function downloadWhatsappImage(mediaId: string) {
     },
   });
 
-  if (!imageResponse.ok) return null;
+  if (!imageResponse.ok) {
+    console.log("Failed to download media");
+    return null;
+  }
 
   const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
   const arrayBuffer = await imageResponse.arrayBuffer();
@@ -183,11 +202,13 @@ export async function POST(req: NextRequest) {
   const message = value?.messages?.[0];
 
   if (!message) {
-    return NextResponse.json({ status: "ok" });
+    return NextResponse.json({ status: "ok-no-message" });
   }
 
   const phoneNumberId = value?.metadata?.phone_number_id;
   const senderPhone = normalizePhone(message.from);
+
+  console.log("Sender phone:", senderPhone);
 
   const store = await prisma.store.findFirst({
     where: {
@@ -202,7 +223,7 @@ export async function POST(req: NextRequest) {
       "رقمك غير مربوط بأي متجر في MarketHub. افتح لوحة صاحب المتجر واحفظ رقم واتسابك أولًا.",
     );
 
-    return NextResponse.json({ status: "no-store" });
+    return NextResponse.json({ status: "no-store", senderPhone });
   }
 
   const text =
@@ -210,13 +231,17 @@ export async function POST(req: NextRequest) {
       ? message.image?.caption || ""
       : message.text?.body || "";
 
+  console.log("Message text:", text);
+
   const productData = parseProductMessage(text);
 
   if (!productData.name || !productData.price || productData.price <= 0) {
     await sendWhatsappMessage(
       phoneNumberId,
       message.from,
-      `أرسل المنتج بهذه الصيغة:
+      `صيغة المنتج غير صحيحة.
+
+أرسل هكذا:
 
 اسم المنتج: كنزة صوف
 السعر: 200
@@ -224,12 +249,16 @@ export async function POST(req: NextRequest) {
 التصنيف: SWEATERS
 المقاسات: M, L, XL
 الألوان: Black, Red
-الوصف: كنزة شتوية
+الوصف: كنزة شتوية ناعمة
 
-ويمكنك إرفاق صورة مع نفس النص.`,
+ملاحظة: إذا أرسلت صورة، اكتب هذا النص في وصف الصورة.`,
     );
 
-    return NextResponse.json({ status: "invalid-format" });
+    return NextResponse.json({
+      status: "invalid-format",
+      text,
+      productData,
+    });
   }
 
   const imageUrl =
@@ -267,9 +296,12 @@ export async function POST(req: NextRequest) {
     message.from,
     `تمت إضافة المنتج بنجاح ✅
 
-${product.name}
+اسم المنتج: ${product.name}
 السعر: ${productData.price} ${productData.currency.toUpperCase()}`,
   );
 
-  return NextResponse.json({ status: "created", productId: product.id });
+  return NextResponse.json({
+    status: "created",
+    productId: product.id,
+  });
 }
