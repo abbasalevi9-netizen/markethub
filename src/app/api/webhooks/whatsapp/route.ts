@@ -1,32 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
 
-  const mode = searchParams.get("hub.mode");
-  const token = searchParams.get("hub.verify_token");
-  const challenge = searchParams.get("hub.challenge");
+  const mode = url.searchParams.get("hub.mode");
+  const token = url.searchParams.get("hub.verify_token");
+  const challenge = url.searchParams.get("hub.challenge");
 
-  if (
-    mode === "subscribe" &&
-    token === process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
-  ) {
-    return new NextResponse(challenge, {
-      status: 200,
-    });
+  const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+
+  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    return new NextResponse(challenge, { status: 200 });
   }
 
-  return new NextResponse("Forbidden", {
-    status: 403,
-  });
+  return new NextResponse("Verification failed", { status: 403 });
 }
 
-export async function POST(request: NextRequest) {
-  const body = await request.json();
+export async function POST(req: NextRequest) {
+  const body = await req.json();
 
-  console.log("WhatsApp webhook body:", JSON.stringify(body, null, 2));
+  console.log("📩 WhatsApp Webhook:", JSON.stringify(body, null, 2));
 
-  return NextResponse.json({
-    received: true,
-  });
+  return NextResponse.json({ status: "ok" });
 }
