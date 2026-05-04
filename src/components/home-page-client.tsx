@@ -29,6 +29,7 @@ type HomeProduct = {
   currency: string;
   isAvailable: boolean;
   sizes: string | null;
+  colors: string | null;
   store: {
     name: string;
     slug: string;
@@ -41,6 +42,16 @@ type HomePageClientProps = {
   featuredStore: HomeStore | null;
   locationStores: HomeStore[];
   products: HomeProduct[];
+};
+
+const colorMap: Record<string, string> = {
+  Black: "#000000",
+  White: "#ffffff",
+  Red: "#ef4444",
+  Blue: "#3b82f6",
+  Green: "#22c55e",
+  Yellow: "#eab308",
+  Gray: "#6b7280",
 };
 
 function formatPrice(priceCents: number, currency: string) {
@@ -61,6 +72,16 @@ function getSizesList(sizes: string | null) {
         .map((s) => s.trim())
         .filter(Boolean)
         .slice(0, 3)
+    : [];
+}
+
+function getColorsList(colors: string | null) {
+  return colors
+    ? colors
+        .split(",")
+        .map((color) => color.trim())
+        .filter(Boolean)
+        .slice(0, 4)
     : [];
 }
 
@@ -119,6 +140,7 @@ export function HomePageClient({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {products.map((product) => {
               const sizes = getSizesList(product.sizes);
+              const colors = getColorsList(product.colors);
 
               return (
                 <Link
@@ -134,7 +156,6 @@ export function HomePageClient({
                       className="object-cover"
                     />
 
-                    {/* Availability */}
                     <span
                       className={`absolute start-1.5 top-1.5 rounded-full px-2 py-1 text-[10px] font-bold ${
                         product.isAvailable
@@ -145,8 +166,7 @@ export function HomePageClient({
                       {product.isAvailable ? text.available : text.unavailable}
                     </span>
 
-                    {/* Store Logo */}
-                    <div className="absolute bottom-1.5 end-1.5 h-7 w-7 rounded-full overflow-hidden border bg-black">
+                    <div className="absolute bottom-1.5 end-1.5 h-7 w-7 overflow-hidden rounded-full border bg-black">
                       {product.store.logoUrl && (
                         <Image
                           src={product.store.logoUrl}
@@ -160,17 +180,16 @@ export function HomePageClient({
                   </div>
 
                   <div className="p-2 text-right">
-                    <h3 className="text-xs font-bold line-clamp-1">
+                    <h3 className="line-clamp-1 text-xs font-bold">
                       {product.name}
                     </h3>
 
-                    {/* Sizes */}
                     {sizes.length > 0 && (
                       <div className="mt-1 flex flex-wrap justify-end gap-1">
                         {sizes.map((s) => (
                           <span
                             key={s}
-                            className="text-[9px] bg-stone-100 px-1.5 py-0.5 rounded"
+                            className="rounded bg-stone-100 px-1.5 py-0.5 text-[9px]"
                           >
                             {s}
                           </span>
@@ -178,7 +197,22 @@ export function HomePageClient({
                       </div>
                     )}
 
-                    <div className="mt-2 flex justify-between items-center">
+                    {colors.length > 0 && (
+                      <div className="mt-1 flex flex-wrap justify-end gap-1">
+                        {colors.map((color) => (
+                          <span
+                            key={color}
+                            className="h-3 w-3 rounded-full border border-stone-300"
+                            style={{
+                              backgroundColor: colorMap[color] || "#d1d5db",
+                            }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-2 flex items-center justify-between gap-1">
                       <span className="text-[10px] font-bold text-amber-900">
                         {formatPrice(product.priceCents, product.currency)}
                       </span>

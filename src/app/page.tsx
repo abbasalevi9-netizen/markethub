@@ -139,6 +139,7 @@ export default async function HomePage() {
         currency: product.currency,
         isAvailable: product.isAvailable,
         sizes: product.sizes,
+        colors: product.colors,
         store: {
           name: product.store.name,
           slug: product.store.slug,

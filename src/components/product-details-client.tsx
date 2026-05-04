@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -14,6 +15,11 @@ type ProductDetailsClientProps = {
     currency: string;
     isAvailable: boolean;
     sizes: string | null;
+    colors: string | null;
+    colorImages: {
+      color: string;
+      imageUrl: string;
+    }[];
     store: {
       name: string;
       slug: string;
@@ -22,6 +28,16 @@ type ProductDetailsClientProps = {
     };
   };
 };
+
+const colorOptions = [
+  { name: "Black", value: "#000000" },
+  { name: "White", value: "#ffffff" },
+  { name: "Red", value: "#ef4444" },
+  { name: "Blue", value: "#3b82f6" },
+  { name: "Green", value: "#22c55e" },
+  { name: "Yellow", value: "#eab308" },
+  { name: "Gray", value: "#6b7280" },
+];
 
 function formatPrice(priceCents: number, currency: string) {
   try {
@@ -34,8 +50,25 @@ function formatPrice(priceCents: number, currency: string) {
   }
 }
 
+function splitList(value: string | null) {
+  return value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
 export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
   const { language } = useLanguage();
+
+  const colors = splitList(product.colors);
+  const sizes = splitList(product.sizes);
+  const [selectedColor, setSelectedColor] = useState(colors[0] ?? null);
+
+  const selectedColorImage = product.colorImages.find(
+    (item) => item.color === selectedColor,
+  );
 
   const text =
     language === "ar"
@@ -48,6 +81,8 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
           available: "متوفر",
           unavailable: "غير متوفر",
           sizes: "المقاسات",
+          colors: "الألوان",
+          colorImageMissing: "لا توجد صورة خاصة لهذا اللون بعد.",
         }
       : language === "tr"
         ? {
@@ -59,6 +94,8 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
             available: "Mevcut",
             unavailable: "Mevcut değil",
             sizes: "Bedenler",
+            colors: "Renkler",
+            colorImageMissing: "Bu renk için henüz özel görsel yok.",
           }
         : {
             backHome: "Back to home",
@@ -69,9 +106,13 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
             available: "Available",
             unavailable: "Unavailable",
             sizes: "Sizes",
+            colors: "Colors",
+            colorImageMissing: "No image for this color yet.",
           };
 
   const fallbackImage = product.store.bannerUrl || "/hero-store.png";
+  const shownImage =
+    selectedColorImage?.imageUrl || product.imageUrl || fallbackImage;
 
   return (
     <main className="min-h-screen bg-[#f7efe3] px-4 py-10 md:px-6">
@@ -84,14 +125,22 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
         </Link>
 
         <section className="grid gap-8 rounded-[2rem] border border-amber-200/70 bg-white/80 p-4 shadow-2xl shadow-amber-950/10 md:grid-cols-2 md:p-6">
-          <div className="relative aspect-square overflow-hidden rounded-[1.5rem] bg-stone-100">
-            <Image
-              src={product.imageUrl || fallbackImage}
-              alt={product.name}
-              fill
-              priority
-              className="object-cover"
-            />
+          <div>
+            <div className="relative aspect-square overflow-hidden rounded-[1.5rem] bg-stone-100">
+              <Image
+                src={shownImage}
+                alt={product.name}
+                fill
+                priority
+                className="object-cover"
+              />
+            </div>
+
+            {selectedColor && !selectedColorImage ? (
+              <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-center text-sm font-bold text-amber-800">
+                {text.colorImageMissing}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col justify-center text-right">
@@ -135,12 +184,55 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
                 {product.isAvailable ? text.available : text.unavailable}
               </span>
 
-              {product.sizes ? (
+              {sizes.length > 0 ? (
                 <span className="rounded-full bg-stone-100 px-4 py-2 text-sm font-bold text-stone-700">
-                  {text.sizes}: {product.sizes}
+                  {text.sizes}: {sizes.join(", ")}
                 </span>
               ) : null}
             </div>
+
+            {colors.length > 0 ? (
+              <div className="mt-5">
+                <p className="mb-2 text-sm font-extrabold text-stone-700">
+                  {text.colors}
+                </p>
+
+                <div className="flex flex-wrap justify-end gap-2">
+                  {colors.map((color) => {
+                    const option = colorOptions.find(
+                      (item) => item.name === color,
+                    );
+
+                    const hasImage = product.colorImages.some(
+                      (item) => item.color === color,
+                    );
+
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={`relative h-9 w-9 rounded-full border-2 shadow-sm transition ${
+                          selectedColor === color
+                            ? "scale-110 border-black"
+                            : "border-white"
+                        }`}
+                        style={{
+                          backgroundColor: option?.value || "#d1d5db",
+                        }}
+                        title={color}
+                      >
+                        {hasImage ? (
+                          <span className="absolute -bottom-1 -end-1 flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-[10px] font-bold text-white">
+                            ✓
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             <p className="mt-5 leading-8 text-stone-600">
               {product.description || text.noDescription}

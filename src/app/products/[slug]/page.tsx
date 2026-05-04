@@ -19,6 +19,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
       slug: decodedSlug,
     },
     include: {
+      images: {
+        select: {
+          color: true,
+          imageUrl: true,
+        },
+      },
       store: {
         select: {
           name: true,
@@ -44,6 +50,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
         currency: product.currency,
         isAvailable: product.isAvailable,
         sizes: product.sizes,
+        colors: product.colors,
+        colorImages: product.images,
         store: {
           name: product.store.name,
           slug: product.store.slug,

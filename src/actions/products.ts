@@ -298,6 +298,59 @@ export async function toggleProductColorAction(
   revalidateProductPages(product);
 }
 
+export async function updateProductColorImageAction(
+  productId: string,
+  color: string,
+  formData: FormData,
+) {
+  const session = await requireRole(Role.STORE_OWNER);
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: {
+      store: true,
+      images: true,
+    },
+  });
+
+  if (!product || product.store.ownerId !== session.user.id) {
+    throw new Error("Product not found or access denied");
+  }
+
+  const imageUrl = await saveProductImage(formData.get("image"));
+
+  if (!imageUrl) {
+    throw new Error("Please choose an image");
+  }
+
+  const normalizedColor = color.trim();
+
+  const existingImage = product.images.find(
+    (image) => image.color === normalizedColor,
+  );
+
+  if (existingImage) {
+    await prisma.productImage.update({
+      where: {
+        id: existingImage.id,
+      },
+      data: {
+        imageUrl,
+      },
+    });
+  } else {
+    await prisma.productImage.create({
+      data: {
+        productId: product.id,
+        color: normalizedColor,
+        imageUrl,
+      },
+    });
+  }
+
+  revalidateProductPages(product);
+}
+
 export async function toggleProductAvailabilityAction(productId: string) {
   const session = await requireRole(Role.STORE_OWNER);
 

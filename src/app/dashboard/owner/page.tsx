@@ -7,11 +7,11 @@ import {
   toggleProductAvailabilityAction,
   toggleProductSizeAction,
   toggleProductColorAction,
+  updateProductColorImageAction,
 } from "@/actions/products";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-guards";
 import { formatMoney } from "@/lib/money";
-import { T } from "@/components/translated-text";
 
 type PageProps = {
   searchParams?: Promise<{
@@ -63,7 +63,12 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
     where: { ownerId: session.user.id },
     include: {
       subscription: true,
-      products: { orderBy: { createdAt: "desc" } },
+      products: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          images: true,
+        },
+      },
     },
   });
 
@@ -82,12 +87,18 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
 
           return (
             <div key={product.id} className="rounded-2xl border p-4">
-              {/* IMAGE */}
               <div className="relative mb-4">
-                <img
-                  src={product.imageUrl || ""}
-                  className="h-40 w-full object-cover rounded-xl"
-                />
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="h-40 w-full rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="flex h-40 w-full items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-400">
+                    لا توجد صورة
+                  </div>
+                )}
 
                 <form
                   action={toggleProductAvailabilityAction.bind(
@@ -96,7 +107,7 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                   )}
                 >
                   <button
-                    className={`absolute top-2 start-2 px-2 py-1 text-xs rounded-full ${
+                    className={`absolute start-2 top-2 rounded-full px-2 py-1 text-xs ${
                       product.isAvailable
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-700"
@@ -109,9 +120,8 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
 
               <h3 className="font-bold">{product.name}</h3>
 
-              {/* SIZES */}
               <div className="mt-3">
-                <p className="text-xs text-gray-500 mb-1">المقاسات</p>
+                <p className="mb-1 text-xs text-gray-500">المقاسات</p>
 
                 <div className="flex flex-wrap gap-1">
                   {sizeOptions.map((size) => {
@@ -127,7 +137,7 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                         )}
                       >
                         <button
-                          className={`px-2 py-1 text-xs rounded-full border ${
+                          className={`rounded-full border px-2 py-1 text-xs ${
                             active
                               ? "bg-black text-white"
                               : "bg-gray-100 text-gray-400"
@@ -141,39 +151,87 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                 </div>
               </div>
 
-              {/* COLORS */}
               <div className="mt-4">
-                <p className="text-xs text-gray-500 mb-1">الألوان</p>
+                <p className="mb-1 text-xs text-gray-500">الألوان + الصور</p>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-3">
                   {colorOptions.map((color) => {
                     const active = colors.includes(color.name);
+                    const colorImage = product.images.find(
+                      (image) => image.color === color.name,
+                    );
 
                     return (
-                      <form
+                      <div
                         key={color.name}
-                        action={toggleProductColorAction.bind(
-                          null,
-                          product.id,
-                          color.name,
-                        )}
+                        className="rounded-xl border border-gray-100 bg-gray-50 p-2"
                       >
-                        <button
-                          className={`h-6 w-6 rounded-full border-2 ${
-                            active
-                              ? "border-black scale-110"
-                              : "border-gray-200"
-                          }`}
-                          style={{ backgroundColor: color.value }}
-                          title={color.name}
-                        />
-                      </form>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <form
+                            action={toggleProductColorAction.bind(
+                              null,
+                              product.id,
+                              color.name,
+                            )}
+                          >
+                            <button
+                              className={`h-7 w-7 rounded-full border-2 ${
+                                active
+                                  ? "scale-110 border-black"
+                                  : "border-gray-200"
+                              }`}
+                              style={{ backgroundColor: color.value }}
+                              title={color.name}
+                            />
+                          </form>
+
+                          <span className="text-xs font-bold text-gray-600">
+                            {color.name}
+                          </span>
+                        </div>
+
+                        {active && (
+                          <div className="space-y-2">
+                            {colorImage ? (
+                              <img
+                                src={colorImage.imageUrl}
+                                alt={`${product.name} ${color.name}`}
+                                className="h-20 w-full rounded-lg object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-20 items-center justify-center rounded-lg bg-white text-[11px] text-gray-400">
+                                لا توجد صورة لهذا اللون
+                              </div>
+                            )}
+
+                            <form
+                              action={updateProductColorImageAction.bind(
+                                null,
+                                product.id,
+                                color.name,
+                              )}
+                              className="space-y-2"
+                            >
+                              <input
+                                type="file"
+                                name="image"
+                                accept="image/png,image/jpeg,image/webp,image/gif"
+                                className="w-full rounded-lg border bg-white px-2 py-1 text-[11px]"
+                              />
+
+                              <button className="w-full rounded-lg bg-black px-3 py-2 text-xs font-bold text-white">
+                                حفظ صورة اللون
+                              </button>
+                            </form>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
               </div>
 
-              <p className="mt-3 text-sm text-gray-600 line-clamp-2">
+              <p className="mt-3 line-clamp-2 text-sm text-gray-600">
                 {product.description}
               </p>
 
@@ -184,13 +242,13 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
               <div className="mt-4 flex gap-2">
                 <Link
                   href={`/dashboard/owner/products/${product.id}/edit`}
-                  className="border px-3 py-1 rounded"
+                  className="rounded border px-3 py-1"
                 >
                   تعديل
                 </Link>
 
                 <form action={deleteProductAction.bind(null, product.id)}>
-                  <button className="border px-3 py-1 rounded text-red-600">
+                  <button className="rounded border px-3 py-1 text-red-600">
                     حذف
                   </button>
                 </form>
