@@ -103,6 +103,7 @@ model Product {
   isActive    Boolean         @default(true)
   isAvailable Boolean         @default(true)
   sizes       String?
+  colors      String?
 
   storeId String
   store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)

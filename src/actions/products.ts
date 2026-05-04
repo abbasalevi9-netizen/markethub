@@ -31,6 +31,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   category: z.enum(productCategories).default("OTHER"),
   sizes: z.string().optional(),
+  colors: z.string().optional(),
   isAvailable: z.boolean().default(true),
   price: z.coerce.number().positive(),
   currency: z.string().default("usd"),
@@ -122,6 +123,15 @@ function revalidateProductPages(product: {
   revalidatePath(`/categories/${product.category.toLowerCase()}`);
 }
 
+function splitOptions(value: string | null) {
+  return value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
 export async function createProductAction(formData: FormData) {
   const session = await requireRole(Role.STORE_OWNER);
 
@@ -131,6 +141,7 @@ export async function createProductAction(formData: FormData) {
     description: formData.get("description") || undefined,
     category: formData.get("category") || "OTHER",
     sizes: formData.get("sizes") || undefined,
+    colors: formData.get("colors") || undefined,
     isAvailable: formData.get("isAvailable") === "on",
     price: formData.get("price"),
     currency: formData.get("currency") || "usd",
@@ -152,6 +163,7 @@ export async function createProductAction(formData: FormData) {
       description: parsed.data.description,
       category: parsed.data.category,
       sizes: parsed.data.sizes?.trim() || null,
+      colors: parsed.data.colors?.trim() || null,
       isAvailable: parsed.data.isAvailable,
       imageUrl,
       priceCents: Math.round(parsed.data.price * 100),
@@ -188,6 +200,7 @@ export async function updateProductAction(
     description: formData.get("description") || undefined,
     category: formData.get("category") || "OTHER",
     sizes: formData.get("sizes") || undefined,
+    colors: formData.get("colors") || undefined,
     isAvailable: formData.get("isAvailable") === "on",
     price: formData.get("price"),
     currency: formData.get("currency") || "usd",
@@ -206,6 +219,7 @@ export async function updateProductAction(
       description: parsed.data.description,
       category: parsed.data.category,
       sizes: parsed.data.sizes?.trim() || null,
+      colors: parsed.data.colors?.trim() || null,
       isAvailable: parsed.data.isAvailable,
       imageUrl: uploadedImageUrl ?? product.imageUrl,
       priceCents: Math.round(parsed.data.price * 100),
@@ -235,13 +249,7 @@ export async function toggleProductSizeAction(productId: string, size: string) {
     throw new Error("Product not found or access denied");
   }
 
-  const currentSizes = product.sizes
-    ? product.sizes
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
-
+  const currentSizes = splitOptions(product.sizes);
   const normalizedSize = size.trim();
 
   const nextSizes = currentSizes.includes(normalizedSize)
@@ -252,6 +260,38 @@ export async function toggleProductSizeAction(productId: string, size: string) {
     where: { id: product.id },
     data: {
       sizes: nextSizes.length > 0 ? nextSizes.join(", ") : null,
+    },
+  });
+
+  revalidateProductPages(product);
+}
+
+export async function toggleProductColorAction(
+  productId: string,
+  color: string,
+) {
+  const session = await requireRole(Role.STORE_OWNER);
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { store: true },
+  });
+
+  if (!product || product.store.ownerId !== session.user.id) {
+    throw new Error("Product not found or access denied");
+  }
+
+  const currentColors = splitOptions(product.colors);
+  const normalizedColor = color.trim();
+
+  const nextColors = currentColors.includes(normalizedColor)
+    ? currentColors.filter((item) => item !== normalizedColor)
+    : [...currentColors, normalizedColor];
+
+  await prisma.product.update({
+    where: { id: product.id },
+    data: {
+      colors: nextColors.length > 0 ? nextColors.join(", ") : null,
     },
   });
 
