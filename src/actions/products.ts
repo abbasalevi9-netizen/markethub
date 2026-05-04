@@ -107,6 +107,21 @@ async function createUniqueProductSlug(storeId: string, name: string) {
   return slug;
 }
 
+function revalidateProductPages(product: {
+  slug: string;
+  category: string;
+  store: {
+    slug: string;
+  };
+}) {
+  revalidatePath("/");
+  revalidatePath("/stores");
+  revalidatePath("/dashboard/owner");
+  revalidatePath(`/products/${encodeURIComponent(product.slug)}`);
+  revalidatePath(`/stores/${encodeURIComponent(product.store.slug)}`);
+  revalidatePath(`/categories/${product.category.toLowerCase()}`);
+}
+
 export async function createProductAction(formData: FormData) {
   const session = await requireRole(Role.STORE_OWNER);
 
@@ -206,6 +221,63 @@ export async function updateProductAction(
   revalidatePath(`/categories/${parsed.data.category.toLowerCase()}`);
 
   redirect("/dashboard/owner");
+}
+
+export async function toggleProductSizeAction(productId: string, size: string) {
+  const session = await requireRole(Role.STORE_OWNER);
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { store: true },
+  });
+
+  if (!product || product.store.ownerId !== session.user.id) {
+    throw new Error("Product not found or access denied");
+  }
+
+  const currentSizes = product.sizes
+    ? product.sizes
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+  const normalizedSize = size.trim();
+
+  const nextSizes = currentSizes.includes(normalizedSize)
+    ? currentSizes.filter((item) => item !== normalizedSize)
+    : [...currentSizes, normalizedSize];
+
+  await prisma.product.update({
+    where: { id: product.id },
+    data: {
+      sizes: nextSizes.length > 0 ? nextSizes.join(", ") : null,
+    },
+  });
+
+  revalidateProductPages(product);
+}
+
+export async function toggleProductAvailabilityAction(productId: string) {
+  const session = await requireRole(Role.STORE_OWNER);
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { store: true },
+  });
+
+  if (!product || product.store.ownerId !== session.user.id) {
+    throw new Error("Product not found or access denied");
+  }
+
+  await prisma.product.update({
+    where: { id: product.id },
+    data: {
+      isAvailable: !product.isAvailable,
+    },
+  });
+
+  revalidateProductPages(product);
 }
 
 export async function deleteProductAction(productId: string) {
