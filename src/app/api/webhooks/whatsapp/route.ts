@@ -7,8 +7,9 @@ export async function GET(req: NextRequest) {
   const token = url.searchParams.get("hub.verify_token");
   const challenge = url.searchParams.get("hub.challenge");
 
-  const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
-
+  const VERIFY_TOKEN =
+    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ||
+    "markethub_whatsapp_verify_123";
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
     return new NextResponse(challenge, { status: 200 });
   }
