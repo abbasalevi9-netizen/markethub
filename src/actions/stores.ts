@@ -21,7 +21,22 @@ const storeBrandingSchema = z.object({
   name: z.string().min(2),
   location: z.string().optional(),
   websiteUrl: z.string().url().optional().or(z.literal("")),
+  whatsappPhone: z.string().optional(),
 });
+
+function normalizeWhatsappPhone(phone: string | undefined) {
+  if (!phone) {
+    return null;
+  }
+
+  const cleaned = phone.replace(/[^\d+]/g, "").trim();
+
+  if (!cleaned) {
+    return null;
+  }
+
+  return cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
+}
 
 async function saveStoreImage(image: FormDataEntryValue | null) {
   if (!(image instanceof File) || image.size === 0) {
@@ -125,6 +140,7 @@ export async function updateStoreBrandingAction(formData: FormData) {
     name: formData.get("name") || store.name,
     location: formData.get("location") || undefined,
     websiteUrl: formData.get("websiteUrl") || "",
+    whatsappPhone: formData.get("whatsappPhone") || undefined,
   });
 
   if (!parsed.success) {
@@ -143,6 +159,7 @@ export async function updateStoreBrandingAction(formData: FormData) {
       name: parsed.data.name,
       location: parsed.data.location || null,
       websiteUrl: parsed.data.websiteUrl || null,
+      whatsappPhone: normalizeWhatsappPhone(parsed.data.whatsappPhone),
       logoUrl: logoUrl ?? store.logoUrl,
       bannerUrl: bannerUrl ?? store.bannerUrl,
       locationImageUrl: locationImageUrl ?? store.locationImageUrl,
@@ -152,7 +169,7 @@ export async function updateStoreBrandingAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/stores");
   revalidatePath("/dashboard/owner");
-  revalidatePath(`/stores/${store.slug}`);
+  revalidatePath(`/stores/${encodeURIComponent(store.slug)}`);
 
   redirect("/dashboard/owner");
 }

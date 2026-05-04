@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Role } from "@prisma/client";
 
-import { createStoreAction, updateStoreBrandingAction } from "@/actions/stores";
+import { updateStoreBrandingAction } from "@/actions/stores";
 import {
   deleteProductAction,
   toggleProductAvailabilityAction,
@@ -56,30 +56,47 @@ function splitList(value: string | null) {
 }
 
 export default async function OwnerDashboardPage({ searchParams }: PageProps) {
-  const params = await searchParams;
   const session = await requireRole(Role.STORE_OWNER);
 
-  const stores = await prisma.store.findMany({
+  const store = await prisma.store.findFirst({
     where: { ownerId: session.user.id },
     include: {
-      subscription: true,
       products: {
         orderBy: { createdAt: "desc" },
-        include: {
-          images: true,
-        },
+        include: { images: true },
       },
     },
   });
 
-  const store = stores[0];
-
   if (!store) return null;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="mb-6 text-3xl font-bold">{store.name}</h1>
+    <main className="mx-auto max-w-6xl px-6 py-10 space-y-10">
+      {/* 🔥 NEW: WhatsApp Settings */}
+      <div className="rounded-2xl border p-5 bg-white">
+        <h2 className="text-lg font-bold mb-4">ربط واتساب</h2>
 
+        <form action={updateStoreBrandingAction} className="space-y-3">
+          <input type="hidden" name="name" value={store.name} />
+
+          <input
+            name="whatsappPhone"
+            defaultValue={store.whatsappPhone || ""}
+            placeholder="+905xxxxxxxxx"
+            className="w-full rounded-xl border px-4 py-3"
+          />
+
+          <button className="rounded-xl bg-black text-white px-5 py-3 font-bold">
+            حفظ رقم الواتساب
+          </button>
+        </form>
+
+        <p className="text-xs text-gray-500 mt-2">
+          هذا الرقم سيتم استخدامه لإضافة المنتجات عبر واتساب
+        </p>
+      </div>
+
+      {/* PRODUCTS */}
       <div className="grid gap-4 md:grid-cols-3">
         {store.products.map((product) => {
           const sizes = splitList(product.sizes);
@@ -91,11 +108,10 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                 {product.imageUrl ? (
                   <img
                     src={product.imageUrl}
-                    alt={product.name}
                     className="h-40 w-full rounded-xl object-cover"
                   />
                 ) : (
-                  <div className="flex h-40 w-full items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-400">
+                  <div className="h-40 flex items-center justify-center bg-gray-100 rounded-xl text-sm text-gray-400">
                     لا توجد صورة
                   </div>
                 )}
@@ -107,7 +123,7 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                   )}
                 >
                   <button
-                    className={`absolute start-2 top-2 rounded-full px-2 py-1 text-xs ${
+                    className={`absolute top-2 start-2 px-2 py-1 text-xs rounded-full ${
                       product.isAvailable
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-700"
@@ -120,9 +136,8 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
 
               <h3 className="font-bold">{product.name}</h3>
 
+              {/* SIZES */}
               <div className="mt-3">
-                <p className="mb-1 text-xs text-gray-500">المقاسات</p>
-
                 <div className="flex flex-wrap gap-1">
                   {sizeOptions.map((size) => {
                     const active = sizes.includes(size);
@@ -137,7 +152,7 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                         )}
                       >
                         <button
-                          className={`rounded-full border px-2 py-1 text-xs ${
+                          className={`px-2 py-1 text-xs rounded-full border ${
                             active
                               ? "bg-black text-white"
                               : "bg-gray-100 text-gray-400"
@@ -151,104 +166,67 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <p className="mb-1 text-xs text-gray-500">الألوان + الصور</p>
+              {/* COLORS */}
+              <div className="mt-4 space-y-3">
+                {colorOptions.map((color) => {
+                  const active = colors.includes(color.name);
+                  const colorImage = product.images.find(
+                    (i) => i.color === color.name,
+                  );
 
-                <div className="space-y-3">
-                  {colorOptions.map((color) => {
-                    const active = colors.includes(color.name);
-                    const colorImage = product.images.find(
-                      (image) => image.color === color.name,
-                    );
-
-                    return (
-                      <div
-                        key={color.name}
-                        className="rounded-xl border border-gray-100 bg-gray-50 p-2"
-                      >
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <form
-                            action={toggleProductColorAction.bind(
-                              null,
-                              product.id,
-                              color.name,
-                            )}
-                          >
-                            <button
-                              className={`h-7 w-7 rounded-full border-2 ${
-                                active
-                                  ? "scale-110 border-black"
-                                  : "border-gray-200"
-                              }`}
-                              style={{ backgroundColor: color.value }}
-                              title={color.name}
-                            />
-                          </form>
-
-                          <span className="text-xs font-bold text-gray-600">
-                            {color.name}
-                          </span>
-                        </div>
-
-                        {active && (
-                          <div className="space-y-2">
-                            {colorImage ? (
-                              <img
-                                src={colorImage.imageUrl}
-                                alt={`${product.name} ${color.name}`}
-                                className="h-20 w-full rounded-lg object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-20 items-center justify-center rounded-lg bg-white text-[11px] text-gray-400">
-                                لا توجد صورة لهذا اللون
-                              </div>
-                            )}
-
-                            <form
-                              action={updateProductColorImageAction.bind(
-                                null,
-                                product.id,
-                                color.name,
-                              )}
-                              className="space-y-2"
-                            >
-                              <input
-                                type="file"
-                                name="image"
-                                accept="image/png,image/jpeg,image/webp,image/gif"
-                                className="w-full rounded-lg border bg-white px-2 py-1 text-[11px]"
-                              />
-
-                              <button className="w-full rounded-lg bg-black px-3 py-2 text-xs font-bold text-white">
-                                حفظ صورة اللون
-                              </button>
-                            </form>
-                          </div>
+                  return (
+                    <div key={color.name}>
+                      <form
+                        action={toggleProductColorAction.bind(
+                          null,
+                          product.id,
+                          color.name,
                         )}
-                      </div>
-                    );
-                  })}
-                </div>
+                      >
+                        <button
+                          className={`h-7 w-7 rounded-full border-2 ${
+                            active
+                              ? "border-black scale-110"
+                              : "border-gray-200"
+                          }`}
+                          style={{ backgroundColor: color.value }}
+                        />
+                      </form>
+
+                      {active && (
+                        <form
+                          action={updateProductColorImageAction.bind(
+                            null,
+                            product.id,
+                            color.name,
+                          )}
+                          className="mt-2"
+                        >
+                          <input type="file" name="image" className="text-xs" />
+                          <button className="text-xs bg-black text-white px-2 py-1 mt-1 rounded">
+                            حفظ
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
-              <p className="mt-3 line-clamp-2 text-sm text-gray-600">
-                {product.description}
-              </p>
-
-              <p className="mt-2 font-bold">
+              <p className="mt-3 text-sm">
                 {formatMoney(product.priceCents, product.currency)}
               </p>
 
               <div className="mt-4 flex gap-2">
                 <Link
                   href={`/dashboard/owner/products/${product.id}/edit`}
-                  className="rounded border px-3 py-1"
+                  className="border px-3 py-1 rounded"
                 >
                   تعديل
                 </Link>
 
                 <form action={deleteProductAction.bind(null, product.id)}>
-                  <button className="rounded border px-3 py-1 text-red-600">
+                  <button className="border px-3 py-1 rounded text-red-600">
                     حذف
                   </button>
                 </form>
