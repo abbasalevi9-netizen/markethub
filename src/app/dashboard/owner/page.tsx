@@ -7,7 +7,6 @@ import {
   toggleProductAvailabilityAction,
   toggleProductSizeAction,
   toggleProductColorAction,
-  updateProductColorImageAction,
 } from "@/actions/products";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-guards";
@@ -71,10 +70,9 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
   if (!store) return null;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10 space-y-10">
-      {/* 🔥 NEW: WhatsApp Settings */}
-      <div className="rounded-2xl border p-5 bg-white">
-        <h2 className="text-lg font-bold mb-4">ربط واتساب</h2>
+    <main className="mx-auto max-w-6xl space-y-10 px-6 py-10">
+      <div className="rounded-2xl border bg-white p-5">
+        <h2 className="mb-4 text-lg font-bold">ربط واتساب</h2>
 
         <form action={updateStoreBrandingAction} className="space-y-3">
           <input type="hidden" name="name" value={store.name} />
@@ -86,17 +84,16 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
             className="w-full rounded-xl border px-4 py-3"
           />
 
-          <button className="rounded-xl bg-black text-white px-5 py-3 font-bold">
+          <button className="rounded-xl bg-black px-5 py-3 font-bold text-white">
             حفظ رقم الواتساب
           </button>
         </form>
 
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="mt-2 text-xs text-gray-500">
           هذا الرقم سيتم استخدامه لإضافة المنتجات عبر واتساب
         </p>
       </div>
 
-      {/* PRODUCTS */}
       <div className="grid gap-4 md:grid-cols-3">
         {store.products.map((product) => {
           const sizes = splitList(product.sizes);
@@ -108,10 +105,11 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                 {product.imageUrl ? (
                   <img
                     src={product.imageUrl}
+                    alt={product.name}
                     className="h-40 w-full rounded-xl object-cover"
                   />
                 ) : (
-                  <div className="h-40 flex items-center justify-center bg-gray-100 rounded-xl text-sm text-gray-400">
+                  <div className="flex h-40 items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-400">
                     لا توجد صورة
                   </div>
                 )}
@@ -123,7 +121,7 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                   )}
                 >
                   <button
-                    className={`absolute top-2 start-2 px-2 py-1 text-xs rounded-full ${
+                    className={`absolute start-2 top-2 rounded-full px-2 py-1 text-xs ${
                       product.isAvailable
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-700"
@@ -136,8 +134,9 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
 
               <h3 className="font-bold">{product.name}</h3>
 
-              {/* SIZES */}
               <div className="mt-3">
+                <p className="mb-1 text-xs text-gray-500">المقاسات</p>
+
                 <div className="flex flex-wrap gap-1">
                   {sizeOptions.map((size) => {
                     const active = sizes.includes(size);
@@ -152,7 +151,7 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                         )}
                       >
                         <button
-                          className={`px-2 py-1 text-xs rounded-full border ${
+                          className={`rounded-full border px-2 py-1 text-xs ${
                             active
                               ? "bg-black text-white"
                               : "bg-gray-100 text-gray-400"
@@ -166,17 +165,19 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                 </div>
               </div>
 
-              {/* COLORS */}
-              <div className="mt-4 space-y-3">
-                {colorOptions.map((color) => {
-                  const active = colors.includes(color.name);
-                  const colorImage = product.images.find(
-                    (i) => i.color === color.name,
-                  );
+              <div className="mt-4">
+                <p className="mb-2 text-xs text-gray-500">الألوان</p>
 
-                  return (
-                    <div key={color.name}>
+                <div className="flex flex-wrap gap-2">
+                  {colorOptions.map((color) => {
+                    const active = colors.includes(color.name);
+                    const hasImage = product.images.some(
+                      (image) => image.color === color.name,
+                    );
+
+                    return (
                       <form
+                        key={color.name}
                         action={toggleProductColorAction.bind(
                           null,
                           product.id,
@@ -184,33 +185,38 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
                         )}
                       >
                         <button
-                          className={`h-7 w-7 rounded-full border-2 ${
+                          title={
+                            hasImage
+                              ? `${color.name} - يوجد صورة`
+                              : `${color.name} - لا توجد صورة`
+                          }
+                          className={`relative flex h-8 w-8 items-center justify-center rounded-full border-2 transition ${
                             active
-                              ? "border-black scale-110"
-                              : "border-gray-200"
+                              ? "scale-110 border-black opacity-100"
+                              : "border-gray-200 opacity-35"
                           }`}
                           style={{ backgroundColor: color.value }}
-                        />
-                      </form>
-
-                      {active && (
-                        <form
-                          action={updateProductColorImageAction.bind(
-                            null,
-                            product.id,
-                            color.name,
-                          )}
-                          className="mt-2"
                         >
-                          <input type="file" name="image" className="text-xs" />
-                          <button className="text-xs bg-black text-white px-2 py-1 mt-1 rounded">
-                            حفظ
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  );
-                })}
+                          {!active ? (
+                            <span className="text-xs font-black text-white drop-shadow">
+                              ×
+                            </span>
+                          ) : null}
+
+                          {active && hasImage ? (
+                            <span className="absolute -bottom-1 -end-1 flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-[10px] font-bold text-white">
+                              ✓
+                            </span>
+                          ) : null}
+                        </button>
+                      </form>
+                    );
+                  })}
+                </div>
+
+                <p className="mt-2 text-[11px] text-gray-400">
+                  الصور تُضاف من واتساب. اضغط اللون لإظهاره أو إخفائه.
+                </p>
               </div>
 
               <p className="mt-3 text-sm">
@@ -220,13 +226,13 @@ export default async function OwnerDashboardPage({ searchParams }: PageProps) {
               <div className="mt-4 flex gap-2">
                 <Link
                   href={`/dashboard/owner/products/${product.id}/edit`}
-                  className="border px-3 py-1 rounded"
+                  className="rounded border px-3 py-1"
                 >
                   تعديل
                 </Link>
 
                 <form action={deleteProductAction.bind(null, product.id)}>
-                  <button className="border px-3 py-1 rounded text-red-600">
+                  <button className="rounded border px-3 py-1 text-red-600">
                     حذف
                   </button>
                 </form>

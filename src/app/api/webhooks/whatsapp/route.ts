@@ -233,6 +233,36 @@ export async function POST(req: NextRequest) {
 
   console.log("Message text:", text);
 
+  if (message.type === "image" && message.image?.id && !text.trim()) {
+    const imageUrl = await downloadWhatsappImage(message.image.id);
+
+    if (!imageUrl) {
+      await sendWhatsappMessage(
+        phoneNumberId,
+        message.from,
+        "وصلت الصورة لكن لم أستطع حفظها. جرّب إرسالها مرة ثانية.",
+      );
+
+      return NextResponse.json({ status: "image-save-failed" });
+    }
+
+    await prisma.whatsappProductDraft.create({
+      data: {
+        phone: senderPhone,
+        imageUrl,
+        storeId: store.id,
+      },
+    });
+
+    await sendWhatsappMessage(
+      phoneNumberId,
+      message.from,
+      "تم حفظ الصورة 👍 أرسل باقي الصور، وبعدها أرسل تفاصيل المنتج.",
+    );
+
+    return NextResponse.json({ status: "draft-saved" });
+  }
+
   const productData = parseProductMessage(text);
 
   if (!productData.name || !productData.price || productData.price <= 0) {
@@ -241,7 +271,7 @@ export async function POST(req: NextRequest) {
       message.from,
       `صيغة المنتج غير صحيحة.
 
-أرسل هكذا:
+أرسل الصور أولًا بدون وصف، ثم أرسل تفاصيل المنتج هكذا:
 
 اسم المنتج: كنزة صوف
 السعر: 200
@@ -249,9 +279,7 @@ export async function POST(req: NextRequest) {
 التصنيف: SWEATERS
 المقاسات: M, L, XL
 الألوان: Black, Red
-الوصف: كنزة شتوية ناعمة
-
-ملاحظة: إذا أرسلت صورة، اكتب هذا النص في وصف الصورة.`,
+الوصف: كنزة شتوية ناعمة`,
     );
 
     return NextResponse.json({
@@ -261,10 +289,32 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const imageUrl =
+  const drafts = await prisma.whatsappProductDraft.findMany({
+    where: {
+      phone: senderPhone,
+      storeId: store.id,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  const imageUrlFromCurrentMessage =
     message.type === "image" && message.image?.id
       ? await downloadWhatsappImage(message.image.id)
       : null;
+
+  const allImageUrls = [
+    ...drafts.map((draft) => draft.imageUrl),
+    ...(imageUrlFromCurrentMessage ? [imageUrlFromCurrentMessage] : []),
+  ];
+
+  const colorList = productData.colors
+    ? productData.colors
+        .split(",")
+        .map((color) => color.trim())
+        .filter(Boolean)
+    : [];
 
   const slug = await createUniqueProductSlug(store.id, productData.name);
 
@@ -277,11 +327,24 @@ export async function POST(req: NextRequest) {
       category: productData.category as any,
       sizes: productData.sizes,
       colors: productData.colors,
-      imageUrl,
+      imageUrl: allImageUrls[0] || null,
       priceCents: Math.round(productData.price * 100),
       currency: productData.currency,
       isAvailable: true,
       isActive: true,
+      images: {
+        create: allImageUrls.map((imageUrl, index) => ({
+          imageUrl,
+          color: colorList[index] || `image-${index + 1}`,
+        })),
+      },
+    },
+  });
+
+  await prisma.whatsappProductDraft.deleteMany({
+    where: {
+      phone: senderPhone,
+      storeId: store.id,
     },
   });
 
@@ -297,11 +360,13 @@ export async function POST(req: NextRequest) {
     `تمت إضافة المنتج بنجاح ✅
 
 اسم المنتج: ${product.name}
-السعر: ${productData.price} ${productData.currency.toUpperCase()}`,
+السعر: ${productData.price} ${productData.currency.toUpperCase()}
+عدد الصور: ${allImageUrls.length}`,
   );
 
   return NextResponse.json({
     status: "created",
     productId: product.id,
+    imagesCount: allImageUrls.length,
   });
 }

@@ -80,8 +80,9 @@ model Store {
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  products     Product[]
-  subscription Subscription?
+  products        Product[]
+  whatsappDrafts  WhatsappProductDraft[]
+  subscription    Subscription?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -130,6 +131,21 @@ model ProductImage {
   createdAt DateTime @default(now())
 
   @@index([productId])
+}
+
+model WhatsappProductDraft {
+  id       String @id @default(cuid())
+  phone    String
+  imageUrl String
+
+  storeId String
+  store   Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+  @@index([storeId])
+  @@index([createdAt])
 }
 
 model Subscription {
